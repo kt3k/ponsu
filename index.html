@@ -48,6 +48,27 @@ thead th { border-bottom: 1px solid var(--muted); }
 tbody th { border-right: 1px solid var(--muted); }
 td.v0 { background: var(--c0); } td.v1 { background: var(--c1); }
 td.v2 { background: var(--c2); } td.v3 { background: var(--c3); }
+tr.cur th { color: var(--ink); font-weight: 700; }
+td.hit { outline: 2px solid var(--ink); outline-offset: -2px; font-weight: 700; }
+.switch { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
+.switch-label { font-size: .72rem; color: var(--muted); margin-bottom: 6px; }
+.lamps { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; }
+.lamp {
+  width: 2.2em; height: 2.2em; border-radius: 50%; display: grid; place-items: center;
+  font-family: "IBM Plex Mono", monospace; border: 2px solid var(--line); color: var(--muted);
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.lamp.on { border-color: var(--ink); color: var(--ink); transform: scale(1.12); font-weight: 700; }
+.lamp.on.v0 { background: var(--c0); } .lamp.on.v1 { background: var(--c1); }
+.lamp.on.v2 { background: var(--c2); } .lamp.on.v3 { background: var(--c3); }
+.btns { display: flex; gap: 6px; justify-content: center; }
+.btns button {
+  font: 500 .95rem "IBM Plex Mono", monospace; min-width: 2.6em; padding: 6px 10px; cursor: pointer;
+  border: 1px solid var(--ink); border-radius: 6px; background: var(--card); color: var(--ink);
+}
+.btns button:active { transform: translateY(1px); }
+.btns button.reset { border-color: var(--line); color: var(--muted); }
+.hist { font-family: "IBM Plex Mono", monospace; font-size: .78rem; color: var(--muted); text-align: center; margin-top: 6px; min-height: 1.4em; overflow-wrap: anywhere; }
 .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .tag { font-size: .72rem; border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; color: var(--muted); }
 .tag.g { border-color: var(--accent); color: var(--accent); }
@@ -81,12 +102,16 @@ const I18N = {
     title: "位数 2・3・4 のモノイド",
     lead: `同型を除いて、位数 2 のモノイドは 2 個、位数 3 は 7 個、位数 4 は 35 個あります。
       単位元を <b>e</b> とし、残りの元を a, b, c としたケイリー表（行 × 列 = 積）で全て列挙しています。
-      一覧はページを開いたときにブラウザ上で全ての結合的な演算表を探索して生成しています。`,
+      一覧はページを開いたときにブラウザ上で全ての結合的な演算表を探索して生成しています。
+      各カードのスイッチは、状態 s でボタン x を押すと状態が s·x に変わる「N 状態・N−1 ボタン」の機械です（右正則表現）。
+      e から始めてボタンを押した列の積が、そのまま今の状態になります。`,
     order: (n) => `位数 ${n}`,
     orderButton: (n, k) => `位数 ${n}（${k}）`,
     count: (k, total) => `${k} / ${total} 個`,
     empty: "条件に合うモノイドはありません。",
     dual: "双対",
+    switchLabel: "スイッチ（状態 s でボタン x → s·x）",
+    reset: "リセット",
     idempotents: "冪等元",
     units: "単元群",
     zero: "零元",
@@ -101,12 +126,16 @@ const I18N = {
     title: "Monoids of order 2, 3 and 4",
     lead: `Up to isomorphism there are 2 monoids of order 2, 7 of order 3 and 35 of order 4.
       Each one is shown as a Cayley table (row × column = product) with identity <b>e</b> and other elements a, b, c.
-      The list is generated in your browser on page load by searching every associative operation table.`,
+      The list is generated in your browser on page load by searching every associative operation table.
+      The switch on each card is an N-state machine with N−1 buttons: pressing x in state s moves it to s·x (the right regular representation).
+      Starting from e, the current state is always the product of the buttons pressed so far.`,
     order: (n) => `Order ${n}`,
     orderButton: (n, k) => `Order ${n} (${k})`,
     count: (k, total) => `${k} / ${total}`,
     empty: "No monoids match the selected filters.",
     dual: "Dual",
+    switchLabel: "Switch (button x in state s → s·x)",
+    reset: "Reset",
     idempotents: "Idempotents",
     units: "Units",
     zero: "Zero",
@@ -181,30 +210,49 @@ function renderControls() {
   }));
 }
 
-function cayley(m) {
+// Per-card switch state: id -> { state, presses, last }
+const switches = new Map();
+const swOf = (m) => switches.get(`${m.n}-${m.index}`) ?? { state: 0, presses: [], last: null };
+
+function cayley(m, sw) {
   const n = m.n;
   const head = `<tr><th>·</th>${NAMES.slice(0, n).map((x) => `<th>${x}</th>`).join("")}</tr>`;
   const rows = [...Array(n).keys()].map((x) =>
-    `<tr><th>${NAMES[x]}</th>${[...Array(n).keys()].map((y) => {
+    `<tr${sw.last && sw.last.from === x ? ' class="cur"' : ""}><th>${NAMES[x]}</th>${[...Array(n).keys()].map((y) => {
       const v = m.table[x * n + y];
-      return `<td class="v${v}">${NAMES[v]}</td>`;
+      const hit = sw.last && sw.last.from === x && sw.last.button === y;
+      return `<td class="v${v}${hit ? " hit" : ""}">${NAMES[v]}</td>`;
     }).join("")}</tr>`).join("");
   return `<table><thead>${head}</thead><tbody>${rows}</tbody></table>`;
 }
 
 const set = (xs) => `{${xs.map((x) => NAMES[x]).join(", ")}}`;
 
+function switchPanel(m, sw) {
+  const L = t();
+  const els = [...Array(m.n).keys()];
+  const shown = sw.presses.length > 16 ? ["…", ...sw.presses.slice(-16).map((x) => NAMES[x])] : sw.presses.map((x) => NAMES[x]);
+  return `<div class="switch">
+    <div class="switch-label">${L.switchLabel}</div>
+    <div class="lamps">${els.map((x) => `<span class="lamp v${x}${x === sw.state ? " on" : ""}">${NAMES[x]}</span>`).join("")}</div>
+    <div class="btns">${els.slice(1).map((x) => `<button data-press="${x}">${NAMES[x]}</button>`).join("")}<button class="reset" data-reset title="${L.reset}" aria-label="${L.reset}">↺</button></div>
+    <div class="hist">${sw.presses.length ? `e·${shown.join("·")} = <b>${NAMES[sw.state]}</b>` : "e"}</div>
+  </div>`;
+}
+
 function card(m) {
   const L = t();
-  return `<article class="card">
+  const sw = swOf(m);
+  return `<article class="card" data-id="${m.n}-${m.index}">
     <h3><b>M<sub>${m.n}</sub>-${m.index}</b><span>${m.selfDual ? "" : `${L.dual}: M<sub>${m.n}</sub>-${m.dualIndex}`}</span></h3>
-    ${cayley(m)}
+    ${cayley(m, sw)}
     <div class="tags">${m.tags.map((tag) => `<span class="tag${tag === "group" ? " g" : ""}">${L.tags[tag]}</span>`).join("")}</div>
     <dl>
       <dt>${L.idempotents}</dt><dd>${set(m.idempotents)}</dd>
       <dt>${L.units}</dt><dd>${set(m.units)}</dd>
       <dt>${L.zero}</dt><dd>${m.zero === undefined ? L.none : NAMES[m.zero]}</dd>
     </dl>
+    ${switchPanel(m, sw)}
   </article>`;
 }
 
@@ -228,6 +276,23 @@ function renderAll() {
   renderControls();
   render();
 }
+document.getElementById("main").addEventListener("click", (ev) => {
+  const btn = ev.target.closest("button[data-press], button[data-reset]");
+  if (!btn) return;
+  const el = btn.closest(".card");
+  const [n, index] = el.dataset.id.split("-").map(Number);
+  const m = data[n][index - 1];
+  const sw = swOf(m);
+  if (btn.hasAttribute("data-reset")) {
+    switches.delete(el.dataset.id);
+  } else {
+    const x = Number(btn.dataset.press);
+    const next = m.table[sw.state * n + x];
+    switches.set(el.dataset.id, { state: next, presses: [...sw.presses, x], last: { from: sw.state, button: x } });
+  }
+  el.outerHTML = card(m);
+});
+
 renderAll();
 </script>
 </body>
