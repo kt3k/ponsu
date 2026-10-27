@@ -26,15 +26,18 @@ header { padding-top: 48px; }
 h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 8px; letter-spacing: .02em; }
 .lead { color: var(--muted); margin: 0 0 24px; max-width: 46em; }
 nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-nav button, .lang button, .filters label {
+nav button, .lang button {
   font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--ink);
   padding: 6px 14px; border-radius: 999px; cursor: pointer;
 }
 .lang { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 16px; }
 .lang button { font-size: .85rem; padding: 4px 12px; }
 nav button[aria-pressed="true"], .lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; font-size: .9rem; }
-.filters label { display: inline-flex; gap: 6px; align-items: center; padding: 4px 12px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; font-size: .85rem; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--card); }
+.seg button { font: inherit; border: 0; background: none; color: var(--muted); padding: 4px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 section h2 { font-size: 1.3rem; margin: 32px 0 4px; border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
 section h2 small { color: var(--muted); font-weight: 400; font-size: .9rem; margin-left: 8px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; margin-top: 16px; }
@@ -116,7 +119,13 @@ const I18N = {
     units: "単元群",
     zero: "零元",
     none: "なし",
-    filters: { isGroup: "群", commutative: "可換", nonCommutative: "非可換", isBand: "冪等", hasZero: "零元あり" },
+    any: "すべて",
+    filters: {
+      isGroup: ["群", "群でない"],
+      commutative: ["可換", "非可換"],
+      isBand: ["冪等", "冪等でない"],
+      hasZero: ["零元あり", "零元なし"],
+    },
     tags: { group: "群", commutative: "可換", band: "冪等 (band)", zero: "零元あり", cyclic: "単生成", leftCancel: "左簡約", rightCancel: "右簡約", selfDual: "自己双対" },
     footer: `参考: OEIS <a href="https://oeis.org/A058129">A058129</a>（同型類の数 1, 2, 7, 35, 228, …）。
       「双対」は演算を左右反転させた (x·y ↦ y·x) モノイドの番号です。`,
@@ -140,7 +149,13 @@ const I18N = {
     units: "Units",
     zero: "Zero",
     none: "none",
-    filters: { isGroup: "Group", commutative: "Commutative", nonCommutative: "Non-commutative", isBand: "Band", hasZero: "Has zero" },
+    any: "Any",
+    filters: {
+      isGroup: ["Group", "Not a group"],
+      commutative: ["Commutative", "Non-commutative"],
+      isBand: ["Band", "Not a band"],
+      hasZero: ["Has zero", "No zero"],
+    },
     tags: { group: "group", commutative: "commutative", band: "band", zero: "has zero", cyclic: "monogenic", leftCancel: "left cancellative", rightCancel: "right cancellative", selfDual: "self-dual" },
     footer: `See OEIS <a href="https://oeis.org/A058129">A058129</a> (number of isomorphism classes: 1, 2, 7, 35, 228, …).
       "Dual" is the number of the monoid with the operation reversed (x·y ↦ y·x).`,
@@ -157,14 +172,14 @@ function initialLang() {
   return (navigator.language || "").startsWith("ja") ? "ja" : "en";
 }
 
-const FILTER_KEYS = ["isGroup", "commutative", "nonCommutative", "isBand", "hasZero"];
-const state = { lang: initialLang(), orders: new Set(ORDERS), filters: new Set() };
+const FILTER_KEYS = ["isGroup", "commutative", "isBand", "hasZero"];
+// filters: key -> true (must have) / false (must not have); absent = any
+const state = { lang: initialLang(), orders: new Set(ORDERS), filters: new Map() };
 const t = () => I18N[state.lang];
 
 const test = {
   isGroup: (m) => m.isGroup,
   commutative: (m) => m.commutative,
-  nonCommutative: (m) => !m.commutative,
   isBand: (m) => m.isBand,
   hasZero: (m) => m.zero !== undefined,
 };
@@ -197,16 +212,21 @@ function renderControls() {
 
   const filters = document.getElementById("filters");
   filters.replaceChildren(...FILTER_KEYS.map((key) => {
-    const l = document.createElement("label");
-    const c = document.createElement("input");
-    c.type = "checkbox";
-    c.checked = state.filters.has(key);
-    c.onchange = () => {
-      c.checked ? state.filters.add(key) : state.filters.delete(key);
-      render();
-    };
-    l.append(c, t().filters[key]);
-    return l;
+    const [yes, no] = t().filters[key];
+    const seg = document.createElement("div");
+    seg.className = "seg";
+    seg.append(...[[undefined, t().any], [true, yes], [false, no]].map(([value, label]) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.setAttribute("aria-pressed", String(state.filters.get(key) === value));
+      b.onclick = () => {
+        value === undefined ? state.filters.delete(key) : state.filters.set(key, value);
+        renderControls();
+        render();
+      };
+      return b;
+    }));
+    return seg;
   }));
 }
 
@@ -259,7 +279,7 @@ function card(m) {
 function render() {
   const L = t();
   document.getElementById("main").innerHTML = ORDERS.filter((n) => state.orders.has(n)).map((n) => {
-    const list = data[n].filter((m) => [...state.filters].every((f) => test[f](m)));
+    const list = data[n].filter((m) => [...state.filters].every(([f, want]) => test[f](m) === want));
     return `<section><h2>${L.order(n)}<small>${L.count(list.length, data[n].length)}</small></h2>
       ${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : `<p class="empty">${L.empty}</p>`}
     </section>`;
