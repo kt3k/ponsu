@@ -5,4 +5,4 @@
 - `monoids.js` — 結合的な演算表を総当たりで探索し、同型類ごとに代表を選ぶ
 - `index.html` — 一覧表示（群・可換・冪等・零元でフィルタ可能）
 
-`main` への push で GitHub Actions が `gh-pages` ブランチにデプロイします。
+`main` への push で GitHub Actions が GitHub Pages にデプロイします（Settings → Pages の Source は "GitHub Actions"）。
