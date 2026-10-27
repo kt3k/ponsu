@@ -1,8 +1,8 @@
 # ponsu
 
-位数 2・3・4 のモノイドを同型を除いて全て列挙し、ケイリー表で表示する静的サイト。
+A static site that lists every monoid of order 2, 3 and 4 up to isomorphism (2, 7 and 35 of them) as Cayley tables. The page is available in Japanese and English.
 
-- `monoids.js` — 結合的な演算表を総当たりで探索し、同型類ごとに代表を選ぶ
-- `index.html` — 一覧表示（群・可換・冪等・零元でフィルタ可能）
+- `monoids.js` — enumerates all associative operation tables by brute force and picks one representative per isomorphism class
+- `index.html` — renders the list, with filters for groups, commutative monoids, bands and monoids with a zero
 
-`main` への push で GitHub Actions が GitHub Pages にデプロイします（Settings → Pages の Source は "GitHub Actions"）。
+Every push to `main` deploys the site to GitHub Pages via GitHub Actions (Settings → Pages → Source must be "GitHub Actions").

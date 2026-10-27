@@ -97,13 +97,13 @@ function analyze(t, n, key, perms) {
   };
   const cyclic = els.some((g) => generated(g).size === n);
   const tags = [];
-  if (isGroup) tags.push("群");
-  if (commutative) tags.push("可換");
-  if (isBand) tags.push("冪等 (band)");
-  if (zero !== undefined && n > 1) tags.push("零元あり");
-  if (cyclic) tags.push("単生成");
-  if (!isGroup && leftCancel !== rightCancel) tags.push(leftCancel ? "左簡約" : "右簡約");
-  if (dualKey === key) tags.push("自己双対");
+  if (isGroup) tags.push("group");
+  if (commutative) tags.push("commutative");
+  if (isBand) tags.push("band");
+  if (zero !== undefined && n > 1) tags.push("zero");
+  if (cyclic) tags.push("cyclic");
+  if (!isGroup && leftCancel !== rightCancel) tags.push(leftCancel ? "leftCancel" : "rightCancel");
+  if (dualKey === key) tags.push("selfDual");
   return {
     key,
     table: t,

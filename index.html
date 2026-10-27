@@ -26,11 +26,13 @@ header { padding-top: 48px; }
 h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 8px; letter-spacing: .02em; }
 .lead { color: var(--muted); margin: 0 0 24px; max-width: 46em; }
 nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-nav button, .filters label {
+nav button, .lang button, .filters label {
   font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--ink);
   padding: 6px 14px; border-radius: 999px; cursor: pointer;
 }
-nav button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.lang { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 16px; }
+.lang button { font-size: .85rem; padding: 4px 12px; }
+nav button[aria-pressed="true"], .lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; font-size: .9rem; }
 .filters label { display: inline-flex; gap: 6px; align-items: center; padding: 4px 12px; }
 section h2 { font-size: 1.3rem; margin: 32px 0 4px; border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
@@ -58,20 +60,14 @@ footer a { color: var(--accent); }
 </head>
 <body>
 <header>
-  <h1>位数 2・3・4 のモノイド</h1>
-  <p class="lead">
-    同型を除いて、位数 2 のモノイドは 2 個、位数 3 は 7 個、位数 4 は 35 個あります。
-    単位元を <b>e</b> とし、残りの元を a, b, c としたケイリー表（行 × 列 = 積）で全て列挙しています。
-    一覧はページを開いたときにブラウザ上で全ての結合的な演算表を探索して生成しています。
-  </p>
+  <div class="lang" id="lang"></div>
+  <h1 id="title"></h1>
+  <p class="lead" id="lead"></p>
   <nav id="orders"></nav>
   <div class="filters" id="filters"></div>
 </header>
 <main id="main"></main>
-<footer>
-  参考: OEIS <a href="https://oeis.org/A058129">A058129</a>（同型類の数 1, 2, 7, 35, 228, …）。
-  「双対」は演算を左右反転させた (x·y ↦ y·x) モノイドの番号です。
-</footer>
+<footer id="footer"></footer>
 <script type="module">
 import { enumerateMonoids } from "./monoids.js";
 
@@ -79,39 +75,62 @@ const NAMES = ["e", "a", "b", "c"];
 const ORDERS = [2, 3, 4];
 const data = Object.fromEntries(ORDERS.map((n) => [n, enumerateMonoids(n)]));
 
-const FILTERS = [
-  ["isGroup", "群"],
-  ["commutative", "可換"],
-  ["nonCommutative", "非可換"],
-  ["isBand", "冪等"],
-  ["hasZero", "零元あり"],
-];
-const state = { orders: new Set(ORDERS), filters: new Set() };
+const I18N = {
+  ja: {
+    docTitle: "位数 2・3・4 のモノイド",
+    title: "位数 2・3・4 のモノイド",
+    lead: `同型を除いて、位数 2 のモノイドは 2 個、位数 3 は 7 個、位数 4 は 35 個あります。
+      単位元を <b>e</b> とし、残りの元を a, b, c としたケイリー表（行 × 列 = 積）で全て列挙しています。
+      一覧はページを開いたときにブラウザ上で全ての結合的な演算表を探索して生成しています。`,
+    order: (n) => `位数 ${n}`,
+    orderButton: (n, k) => `位数 ${n}（${k}）`,
+    count: (k, total) => `${k} / ${total} 個`,
+    empty: "条件に合うモノイドはありません。",
+    dual: "双対",
+    idempotents: "冪等元",
+    units: "単元群",
+    zero: "零元",
+    none: "なし",
+    filters: { isGroup: "群", commutative: "可換", nonCommutative: "非可換", isBand: "冪等", hasZero: "零元あり" },
+    tags: { group: "群", commutative: "可換", band: "冪等 (band)", zero: "零元あり", cyclic: "単生成", leftCancel: "左簡約", rightCancel: "右簡約", selfDual: "自己双対" },
+    footer: `参考: OEIS <a href="https://oeis.org/A058129">A058129</a>（同型類の数 1, 2, 7, 35, 228, …）。
+      「双対」は演算を左右反転させた (x·y ↦ y·x) モノイドの番号です。`,
+  },
+  en: {
+    docTitle: "Monoids of Order 2, 3, 4",
+    title: "Monoids of order 2, 3 and 4",
+    lead: `Up to isomorphism there are 2 monoids of order 2, 7 of order 3 and 35 of order 4.
+      Each one is shown as a Cayley table (row × column = product) with identity <b>e</b> and other elements a, b, c.
+      The list is generated in your browser on page load by searching every associative operation table.`,
+    order: (n) => `Order ${n}`,
+    orderButton: (n, k) => `Order ${n} (${k})`,
+    count: (k, total) => `${k} / ${total}`,
+    empty: "No monoids match the selected filters.",
+    dual: "Dual",
+    idempotents: "Idempotents",
+    units: "Units",
+    zero: "Zero",
+    none: "none",
+    filters: { isGroup: "Group", commutative: "Commutative", nonCommutative: "Non-commutative", isBand: "Band", hasZero: "Has zero" },
+    tags: { group: "group", commutative: "commutative", band: "band", zero: "has zero", cyclic: "monogenic", leftCancel: "left cancellative", rightCancel: "right cancellative", selfDual: "self-dual" },
+    footer: `See OEIS <a href="https://oeis.org/A058129">A058129</a> (number of isomorphism classes: 1, 2, 7, 35, 228, …).
+      "Dual" is the number of the monoid with the operation reversed (x·y ↦ y·x).`,
+  },
+};
 
-const nav = document.getElementById("orders");
-for (const n of ORDERS) {
-  const b = document.createElement("button");
-  b.textContent = `位数 ${n}（${data[n].length}）`;
-  b.setAttribute("aria-pressed", "true");
-  b.onclick = () => {
-    state.orders.has(n) ? state.orders.delete(n) : state.orders.add(n);
-    b.setAttribute("aria-pressed", String(state.orders.has(n)));
-    render();
-  };
-  nav.append(b);
+function initialLang() {
+  const q = new URLSearchParams(location.search).get("lang");
+  if (q in I18N) return q;
+  try {
+    const saved = localStorage.getItem("lang");
+    if (saved in I18N) return saved;
+  } catch {}
+  return (navigator.language || "").startsWith("ja") ? "ja" : "en";
 }
-const filters = document.getElementById("filters");
-for (const [key, label] of FILTERS) {
-  const l = document.createElement("label");
-  const c = document.createElement("input");
-  c.type = "checkbox";
-  c.onchange = () => {
-    c.checked ? state.filters.add(key) : state.filters.delete(key);
-    render();
-  };
-  l.append(c, label);
-  filters.append(l);
-}
+
+const FILTER_KEYS = ["isGroup", "commutative", "nonCommutative", "isBand", "hasZero"];
+const state = { lang: initialLang(), orders: new Set(ORDERS), filters: new Set() };
+const t = () => I18N[state.lang];
 
 const test = {
   isGroup: (m) => m.isGroup,
@@ -120,6 +139,47 @@ const test = {
   isBand: (m) => m.isBand,
   hasZero: (m) => m.zero !== undefined,
 };
+
+function renderControls() {
+  const lang = document.getElementById("lang");
+  lang.replaceChildren(...Object.entries({ ja: "日本語", en: "English" }).map(([code, label]) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(state.lang === code));
+    b.onclick = () => {
+      state.lang = code;
+      try { localStorage.setItem("lang", code); } catch {}
+      renderAll();
+    };
+    return b;
+  }));
+
+  const nav = document.getElementById("orders");
+  nav.replaceChildren(...ORDERS.map((n) => {
+    const b = document.createElement("button");
+    b.textContent = t().orderButton(n, data[n].length);
+    b.setAttribute("aria-pressed", String(state.orders.has(n)));
+    b.onclick = () => {
+      state.orders.has(n) ? state.orders.delete(n) : state.orders.add(n);
+      renderAll();
+    };
+    return b;
+  }));
+
+  const filters = document.getElementById("filters");
+  filters.replaceChildren(...FILTER_KEYS.map((key) => {
+    const l = document.createElement("label");
+    const c = document.createElement("input");
+    c.type = "checkbox";
+    c.checked = state.filters.has(key);
+    c.onchange = () => {
+      c.checked ? state.filters.add(key) : state.filters.delete(key);
+      render();
+    };
+    l.append(c, t().filters[key]);
+    return l;
+  }));
+}
 
 function cayley(m) {
   const n = m.n;
@@ -135,28 +195,40 @@ function cayley(m) {
 const set = (xs) => `{${xs.map((x) => NAMES[x]).join(", ")}}`;
 
 function card(m) {
+  const L = t();
   return `<article class="card">
-    <h3><b>M<sub>${m.n}</sub>-${m.index}</b><span>${m.selfDual ? "" : `双対: M<sub>${m.n}</sub>-${m.dualIndex}`}</span></h3>
+    <h3><b>M<sub>${m.n}</sub>-${m.index}</b><span>${m.selfDual ? "" : `${L.dual}: M<sub>${m.n}</sub>-${m.dualIndex}`}</span></h3>
     ${cayley(m)}
-    <div class="tags">${m.tags.map((t) => `<span class="tag${t === "群" ? " g" : ""}">${t}</span>`).join("")}</div>
+    <div class="tags">${m.tags.map((tag) => `<span class="tag${tag === "group" ? " g" : ""}">${L.tags[tag]}</span>`).join("")}</div>
     <dl>
-      <dt>冪等元</dt><dd>${set(m.idempotents)}</dd>
-      <dt>単元群</dt><dd>${set(m.units)}</dd>
-      <dt>零元</dt><dd>${m.zero === undefined ? "なし" : NAMES[m.zero]}</dd>
+      <dt>${L.idempotents}</dt><dd>${set(m.idempotents)}</dd>
+      <dt>${L.units}</dt><dd>${set(m.units)}</dd>
+      <dt>${L.zero}</dt><dd>${m.zero === undefined ? L.none : NAMES[m.zero]}</dd>
     </dl>
   </article>`;
 }
 
 function render() {
-  const main = document.getElementById("main");
-  main.innerHTML = ORDERS.filter((n) => state.orders.has(n)).map((n) => {
+  const L = t();
+  document.getElementById("main").innerHTML = ORDERS.filter((n) => state.orders.has(n)).map((n) => {
     const list = data[n].filter((m) => [...state.filters].every((f) => test[f](m)));
-    return `<section><h2>位数 ${n}<small>${list.length} / ${data[n].length} 個</small></h2>
-      ${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : `<p class="empty">条件に合うモノイドはありません。</p>`}
+    return `<section><h2>${L.order(n)}<small>${L.count(list.length, data[n].length)}</small></h2>
+      ${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : `<p class="empty">${L.empty}</p>`}
     </section>`;
   }).join("");
 }
-render();
+
+function renderAll() {
+  const L = t();
+  document.documentElement.lang = state.lang;
+  document.title = L.docTitle;
+  document.getElementById("title").textContent = L.title;
+  document.getElementById("lead").innerHTML = L.lead;
+  document.getElementById("footer").innerHTML = L.footer;
+  renderControls();
+  render();
+}
+renderAll();
 </script>
 </body>
 </html>
