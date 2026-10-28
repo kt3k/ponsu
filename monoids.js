@@ -106,7 +106,9 @@ export function analyze(t, n) {
     return s;
   };
   const cyclic = els.some((g) => generated(g).size === n);
-  return { commutative, idempotents, units, zero, leftCancel, rightCancel, isGroup, isBand, cyclic };
+  // Inverse monoid: every x has exactly one y with x·y·x = x and y·x·y = y
+  const inverse = els.every((x) => els.filter((y) => op(op(x, y), x) === x && op(op(y, x), y) === y).length === 1);
+  return { commutative, idempotents, units, zero, leftCancel, rightCancel, isGroup, isBand, cyclic, inverse };
 }
 
 export function tags(m) {
@@ -116,6 +118,7 @@ export function tags(m) {
   if (m.isBand) tags.push("band");
   if (m.zero !== undefined && m.n > 1) tags.push("zero");
   if (m.cyclic) tags.push("cyclic");
+  if (m.inverse && !m.isGroup) tags.push("inverse");
   if (!m.isGroup && m.leftCancel !== m.rightCancel) tags.push(m.leftCancel ? "leftCancel" : "rightCancel");
   if (m.selfDual) tags.push("selfDual");
   return tags;

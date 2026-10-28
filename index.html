@@ -144,9 +144,11 @@ const I18N = {
       commutative: ["可換", "非可換"],
       isBand: ["冪等", "冪等でない"],
       hasZero: ["零元あり", "零元なし"],
+      cyclic: ["単生成", "単生成でない"],
+      inverse: ["逆モノイド", "逆モノイドでない"],
       named: ["慣用名あり", "慣用名なし"],
     },
-    tags: { group: "群", commutative: "可換", band: "冪等 (band)", zero: "零元あり", cyclic: "単生成", leftCancel: "左簡約", rightCancel: "右簡約", selfDual: "自己双対" },
+    tags: { group: "群", commutative: "可換", band: "冪等 (band)", zero: "零元あり", cyclic: "単生成", inverse: "逆モノイド", leftCancel: "左簡約", rightCancel: "右簡約", selfDual: "自己双対" },
     footer: `参考: OEIS <a href="https://oeis.org/A058129">A058129</a>（同型類の数 1, 2, 7, 35, 228, 2237, …）。
       「双対」は演算を左右反転させた (x·y ↦ y·x) モノイドの番号です。<br>
       記法: Zₙ 巡回群、Cₙ 鎖（半束）、Lₖ / Rₖ 左 / 右零半群（x·y = x / y）、Oₖ 零半群（全ての積が 0）、
@@ -180,9 +182,11 @@ const I18N = {
       commutative: ["Commutative", "Non-commutative"],
       isBand: ["Band", "Not a band"],
       hasZero: ["Has zero", "No zero"],
+      cyclic: ["Monogenic", "Not monogenic"],
+      inverse: ["Inverse", "Not inverse"],
       named: ["Named", "Unnamed"],
     },
-    tags: { group: "group", commutative: "commutative", band: "band", zero: "has zero", cyclic: "monogenic", leftCancel: "left cancellative", rightCancel: "right cancellative", selfDual: "self-dual" },
+    tags: { group: "group", commutative: "commutative", band: "band", zero: "has zero", cyclic: "monogenic", inverse: "inverse", leftCancel: "left cancellative", rightCancel: "right cancellative", selfDual: "self-dual" },
     footer: `See OEIS <a href="https://oeis.org/A058129">A058129</a> (number of isomorphism classes: 1, 2, 7, 35, 228, 2237, …).
       "Dual" is the number of the monoid with the operation reversed (x·y ↦ y·x).<br>
       Notation: Zₙ cyclic group, Cₙ chain (semilattice), Lₖ / Rₖ left / right zero semigroup (x·y = x / y), Oₖ null semigroup (all products 0),
@@ -202,7 +206,7 @@ function initialLang() {
   return (navigator.language || "").startsWith("ja") ? "ja" : "en";
 }
 
-const FILTER_KEYS = ["isGroup", "commutative", "isBand", "hasZero", "named"];
+const FILTER_KEYS = ["isGroup", "commutative", "isBand", "hasZero", "cyclic", "inverse", "named"];
 // filters: key -> true (must have) / false (must not have); absent = any
 // shown: order -> number of cards currently rendered in that section
 const state = { lang: initialLang(), orders: new Set(ORDERS), filters: new Map(), shown: new Map() };
@@ -213,6 +217,8 @@ const test = {
   commutative: (m) => m.commutative,
   isBand: (m) => m.isBand,
   hasZero: (m) => m.zero !== undefined,
+  cyclic: (m) => m.cyclic,
+  inverse: (m) => m.inverse,
   named: (m) => m.names.length > 0,
 };
 
