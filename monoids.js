@@ -70,7 +70,57 @@ export function enumerateMonoids(n) {
     const dual = byKey.get(mon.dualKey);
     mon.dualIndex = dual.index;
   }
+  const names = namedMonoids(n, perms);
+  for (const mon of list) mon.names = names.get(mon.key) ?? [];
   return list;
+}
+
+// Well-known monoids, built from their definitions and matched by canonical form.
+// Element 0 is the identity in every construction.
+function fromOp(n, op) {
+  const t = new Array(n * n);
+  for (let x = 0; x < n; x++) for (let y = 0; y < n; y++) t[x * n + y] = op(x, y);
+  return t;
+}
+const cyclicGroup = (n) => fromOp(n, (x, y) => (x + y) % n);
+// <g | g^(i+p) = g^i>, elements g^0 .. g^(i+p-1)
+const monogenic = (i, p) => fromOp(i + p, (x, y) => (x + y < i + p ? x + y : i + ((x + y - i) % p)));
+// Chain semilattice 1 > ... > 0 under meet
+const chain = (n) => fromOp(n, (x, y) => Math.max(x, y));
+const product = (a, na, b, nb) =>
+  fromOp(na * nb, (x, y) => {
+    const u = a[Math.floor(x / nb) * na + Math.floor(y / nb)];
+    const v = b[(x % nb) * nb + (y % nb)];
+    return u * nb + v;
+  });
+const withZero = (t, n) => fromOp(n + 1, (x, y) => (x === n || y === n ? n : t[x * n + y]));
+// S¹: adjoin an identity to a semigroup S of order k given by sop on 0..k-1
+const withIdentity = (k, sop) => fromOp(k + 1, (x, y) => (x === 0 ? y : y === 0 ? x : 1 + sop(x - 1, y - 1)));
+
+function namedMonoids(n, perms) {
+  const sub = (k) => String(k).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[d]);
+  const sup = (k) => String(k).replace(/\d/g, (d) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]);
+  const candidates = [];
+  const add = (size, table, name) => size === n && candidates.push([table, name]);
+  for (let k = 2; k <= 4; k++) add(k, cyclicGroup(k), `Z${sub(k)}`);
+  add(4, product(cyclicGroup(2), 2, cyclicGroup(2), 2), "Z₂×Z₂ (Klein)");
+  add(2, chain(2), "U₁ = {1, 0}");
+  for (let k = 3; k <= 4; k++) add(k, chain(k), `C${sub(k)} (chain)`);
+  add(4, product(chain(2), 2, chain(2), 2), "U₁×U₁");
+  add(4, product(cyclicGroup(2), 2, chain(2), 2), "Z₂×U₁");
+  for (let k = 2; k <= 3; k++) add(k + 1, withZero(cyclicGroup(k), k), `Z${sub(k)}⁰`);
+  add(3, withIdentity(2, (x, y) => y), "R₂¹ = U₂ (flip-flop)");
+  add(3, withIdentity(2, (x) => x), "L₂¹");
+  add(4, withIdentity(3, (x, y) => y), "R₃¹");
+  add(4, withIdentity(3, (x) => x), "L₃¹");
+  add(4, withIdentity(3, () => 0), "O₃¹ (null)");
+  for (let i = 1; i < n; i++) add(n, monogenic(i, n - i), `⟨g | g${sup(n)} = g${i === 1 ? "" : sup(i)}⟩`);
+  const names = new Map();
+  for (const [table, name] of candidates) {
+    const key = canonical(table, n, perms);
+    names.set(key, [...(names.get(key) ?? []), name]);
+  }
+  return names;
 }
 
 function analyze(t, n, key, perms) {

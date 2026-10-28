@@ -44,6 +44,7 @@ section h2 small { color: var(--muted); font-weight: 400; font-size: .9rem; marg
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; margin-top: 16px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
 .card h3 { margin: 0 0 8px; font-size: 1rem; display: flex; justify-content: space-between; align-items: baseline; }
+.names { margin: -4px 0 8px; font-size: .85rem; line-height: 1.4; }
 .card h3 > span { color: var(--muted); font-weight: 400; font-size: .8rem; }
 table { border-collapse: collapse; font-family: "IBM Plex Mono", ui-monospace, monospace; margin: 0 auto 10px; }
 td, th { width: 2.1em; height: 2.1em; text-align: center; font-size: .95rem; }
@@ -129,7 +130,9 @@ const I18N = {
     },
     tags: { group: "群", commutative: "可換", band: "冪等 (band)", zero: "零元あり", cyclic: "単生成", leftCancel: "左簡約", rightCancel: "右簡約", selfDual: "自己双対" },
     footer: `参考: OEIS <a href="https://oeis.org/A058129">A058129</a>（同型類の数 1, 2, 7, 35, 228, …）。
-      「双対」は演算を左右反転させた (x·y ↦ y·x) モノイドの番号です。`,
+      「双対」は演算を左右反転させた (x·y ↦ y·x) モノイドの番号です。<br>
+      記法: Zₙ 巡回群、Cₙ 鎖（半束）、Lₖ / Rₖ 左 / 右零半群（x·y = x / y）、Oₖ 零半群（全ての積が 0）、
+      S¹ 単位元を添加、S⁰ 零元を添加、⟨g | gⁱ⁺ᵖ = gⁱ⟩ 単生成モノイド。`,
   },
   en: {
     docTitle: "Monoids of Order 2, 3, 4",
@@ -159,7 +162,9 @@ const I18N = {
     },
     tags: { group: "group", commutative: "commutative", band: "band", zero: "has zero", cyclic: "monogenic", leftCancel: "left cancellative", rightCancel: "right cancellative", selfDual: "self-dual" },
     footer: `See OEIS <a href="https://oeis.org/A058129">A058129</a> (number of isomorphism classes: 1, 2, 7, 35, 228, …).
-      "Dual" is the number of the monoid with the operation reversed (x·y ↦ y·x).`,
+      "Dual" is the number of the monoid with the operation reversed (x·y ↦ y·x).<br>
+      Notation: Zₙ cyclic group, Cₙ chain (semilattice), Lₖ / Rₖ left / right zero semigroup (x·y = x / y), Oₖ null semigroup (all products 0),
+      S¹ adjoin an identity, S⁰ adjoin a zero, ⟨g | gⁱ⁺ᵖ = gⁱ⟩ monogenic monoid.`,
   },
 };
 
@@ -266,6 +271,7 @@ function card(m) {
   const sw = swOf(m);
   return `<article class="card" data-id="${m.n}-${m.index}">
     <h3><b>M<sub>${m.n}</sub>-${m.index}</b><span>${m.selfDual ? "" : `${L.dual}: M<sub>${m.n}</sub>-${m.dualIndex}`}</span></h3>
+    ${m.names.length ? `<p class="names">${m.names.join("<br>")}</p>` : ""}
     ${cayley(m, sw)}
     <div class="tags">${m.tags.map((tag) => `<span class="tag${tag === "group" ? " g" : ""}">${L.tags[tag]}</span>`).join("")}</div>
     <dl>
