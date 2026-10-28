@@ -126,3 +126,85 @@ export function tags(m) {
 
 export const sortKey = (m, key) =>
   [m.isGroup ? 0 : 1, m.commutative ? 0 : 1, String(9 - m.units.length), String(9 - m.idempotents.length), key].join("|");
+
+// Smallest set of non-identity elements that generates the monoid (first one in subset order)
+export function minimalGenerators(t, n) {
+  const closure = (gens) => {
+    const seen = new Set([0]);
+    const queue = [0];
+    while (queue.length) {
+      const x = queue.pop();
+      for (const g of gens) {
+        const y = t[x * n + g];
+        if (!seen.has(y)) seen.add(y), queue.push(y);
+      }
+    }
+    return seen.size;
+  };
+  const others = [...Array(n - 1)].map((_, i) => i + 1);
+  for (let k = 0; k <= others.length; k++) {
+    const pick = (start, acc) => {
+      if (acc.length === k) return closure(acc) === n ? acc : null;
+      for (let i = start; i < others.length; i++) {
+        const found = pick(i + 1, [...acc, others[i]]);
+        if (found) return found;
+      }
+      return null;
+    };
+    const found = pick(0, []);
+    if (found) return found;
+  }
+  return others;
+}
+
+// Green's relations. Returns the D-classes (= J-classes, as M is finite), each with its
+// R-classes as rows, L-classes as columns and H-classes as cells, plus the J-order between them.
+export function greenStructure(t, n) {
+  const els = [...Array(n).keys()];
+  const op = (x, y) => t[x * n + y];
+  const ideal = (f) => [...new Set(els.flatMap(f))].sort((a, b) => a - b);
+  const R = els.map((x) => ideal((m) => [op(x, m)]));
+  const L = els.map((x) => ideal((m) => [op(m, x)]));
+  const J = els.map((x) => ideal((m) => els.map((k) => op(op(m, x), k))));
+  const groupBy = (keyOf, xs) => {
+    const map = new Map();
+    for (const x of xs) {
+      const k = keyOf(x);
+      map.set(k, [...(map.get(k) ?? []), x]);
+    }
+    return [...map.values()];
+  };
+  const idempotent = (x) => op(x, x) === x;
+  const classes = groupBy((x) => J[x].join(), els).map((d) => {
+    const rows = groupBy((x) => R[x].join(), d);
+    const cols = groupBy((x) => L[x].join(), d);
+    const cells = rows.map((r) => cols.map((c) => r.filter((x) => c.includes(x))));
+    return {
+      elements: d,
+      ideal: J[d[0]],
+      cells,
+      group: cells.map((row) => row.map((h) => h.some(idempotent))),
+      idempotents: d.filter(idempotent),
+    };
+  });
+  // Top of the J-order first: larger ideals above smaller ones
+  classes.sort((a, b) => b.ideal.length - a.ideal.length || a.elements[0] - b.elements[0]);
+  const below = (a, b) => a !== b && a.ideal.every((x) => b.ideal.includes(x));
+  // Hasse diagram covers, and a layer index = length of the longest chain from the top
+  const covers = [];
+  classes.forEach((a, i) =>
+    classes.forEach((b, j) => {
+      if (below(b, a) && !classes.some((c) => below(c, a) && below(b, c))) covers.push([i, j]);
+    }),
+  );
+  const layer = classes.map(() => 0);
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const [i, j] of covers)
+      if (layer[j] < layer[i] + 1) {
+        layer[j] = layer[i] + 1;
+        changed = true;
+      }
+  }
+  return { classes, covers, layer };
+}

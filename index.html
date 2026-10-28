@@ -11,12 +11,14 @@
   --bg: #f7f5f0; --card: #ffffff; --ink: #1f1d1a; --muted: #6b665d; --line: #e2ddd3;
   --accent: #b4432c;
   --c0: #f1efe9; --c1: #f6c9a8; --c2: #a8d5c2; --c3: #b9c4ee; --c4: #f0dc9a; --c5: #dcb8e0;
+  --s1: #d0692a; --s2: #23885f; --s3: #4a5fc1; --s4: #a88310; --s5: #8f4a99; --gcell: #ece6da;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #161513; --card: #201f1c; --ink: #ece8e0; --muted: #a29c90; --line: #35332e;
     --accent: #ec8a6f;
     --c0: #2a2925; --c1: #6b4128; --c2: #275545; --c3: #343f6e; --c4: #5e5124; --c5: #573a5c;
+    --s1: #f0a070; --s2: #6cc79f; --s3: #93a2ee; --s4: #e0c25a; --s5: #d295dc; --gcell: #34322c;
   }
 }
 * { box-sizing: border-box; }
@@ -86,6 +88,28 @@ td.hit { outline: 2px solid var(--ink); outline-offset: -2px; font-weight: 700; 
 dl { margin: 0; font-size: .78rem; color: var(--muted); display: grid; grid-template-columns: auto 1fr; gap: 0 8px; }
 dt { font-weight: 700; } dd { margin: 0; font-family: "IBM Plex Mono", monospace; }
 .empty, .loading { color: var(--muted); }
+.views { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: -12px 0 24px; font-size: .85rem; color: var(--muted); }
+.fig { margin: 8px 0 4px; }
+.fig-label { font-size: .72rem; color: var(--muted); margin-bottom: 2px; }
+.fig svg { display: block; margin: 0 auto; max-width: 100%; height: auto; overflow: visible; }
+.fig text { font-family: "IBM Plex Mono", monospace; fill: var(--ink); }
+.cg .node { fill: var(--card); stroke: var(--muted); stroke-width: 1.5; }
+.cg .node.on { stroke: var(--ink); stroke-width: 3; }
+.cg .node.on.v0 { fill: var(--c0); } .cg .node.on.v1 { fill: var(--c1); } .cg .node.on.v2 { fill: var(--c2); }
+.cg .node.on.v3 { fill: var(--c3); } .cg .node.on.v4 { fill: var(--c4); } .cg .node.on.v5 { fill: var(--c5); }
+.cg .edge { fill: none; stroke-width: 1.4; opacity: .75; }
+.cg .edge.hot { stroke-width: 3.2; opacity: 1; }
+.g1 { stroke: var(--s1); color: var(--s1); } .g2 { stroke: var(--s2); color: var(--s2); } .g3 { stroke: var(--s3); color: var(--s3); }
+.g4 { stroke: var(--s4); color: var(--s4); } .g5 { stroke: var(--s5); color: var(--s5); }
+.cg marker path { fill: currentColor; stroke: none; }
+.gens b { font-family: "IBM Plex Mono", monospace; }
+.gens b.g1 { color: var(--s1); } .gens b.g2 { color: var(--s2); } .gens b.g3 { color: var(--s3); }
+.gens b.g4 { color: var(--s4); } .gens b.g5 { color: var(--s5); }
+.egg .box { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.egg .cell { fill: none; stroke: var(--line); }
+.egg .cell.grp { fill: var(--gcell); }
+.egg .cover { stroke: var(--muted); stroke-width: 1; }
+.egg tspan.idem { font-weight: 700; text-decoration: underline; }
 .more { display: block; margin: 16px auto 0; font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 8px 20px; border-radius: 999px; cursor: pointer; }
 footer { color: var(--muted); font-size: .85rem; padding-top: 32px; padding-bottom: 48px; }
 footer a { color: var(--accent); }
@@ -98,12 +122,13 @@ footer a { color: var(--accent); }
   <p class="lead" id="lead"></p>
   <nav id="orders"></nav>
   <div class="filters" id="filters"></div>
+  <div class="views" id="views"></div>
 </header>
 <main id="main"><p class="loading">Loading…</p></main>
 <footer id="footer"></footer>
 <script type="module">
 // __BUILD__ is replaced with the commit SHA on deploy so browsers never mix cached and fresh files.
-import { analyze, tags } from "./monoids.js?v=__BUILD__";
+import { analyze, greenStructure, minimalGenerators, tags } from "./monoids.js?v=__BUILD__";
 
 const NAMES = ["e", "a", "b", "c", "d", "f"];
 const PAGE = 48;
@@ -133,6 +158,10 @@ const I18N = {
     more: (k) => `さらに表示（残り ${k} 個）`,
     dual: "双対",
     switchLabel: "スイッチ（状態 s でボタン x → s·x）",
+    viewsLabel: "表示:",
+    views: { table: "ケイリー表", graph: "Cayley グラフ", egg: "egg-box 図" },
+    graphLabel: "Cayley グラフ（生成元",
+    eggLabel: "egg-box 図（Green の関係）",
     reset: "リセット",
     idempotents: "冪等元",
     units: "単元群",
@@ -154,7 +183,10 @@ const I18N = {
       記法: Zₙ 巡回群、Cₙ 鎖（半束）、Lₖ / Rₖ 左 / 右零半群（x·y = x / y）、Oₖ 零半群（全ての積が 0）、
       S¹ 単位元を添加、S⁰ 零元を添加、⟨g | gⁱ⁺ᵖ = gⁱ⟩ 単生成モノイド、T₂ 2 点上の全変換モノイド、
       B₂ Brandt 半群、A₂ 5 元の Rees 0-行列半群。
-      変換モノイドの積は x·y = 「x の後に y」（右作用）で、スイッチの向きと揃えています。`,
+      変換モノイドの積は x·y = 「x の後に y」（右作用）で、スイッチの向きと揃えています。<br>
+      Cayley グラフ: 最小の生成元 g ごとに s → s·g の矢印を描いた、スイッチの状態遷移図です（自己ループは小さな輪）。<br>
+      egg-box 図: 太枠が 𝒟 類（= 𝒥 類）、行が ℛ 類（xM が等しい）、列が ℒ 類（Mx が等しい）、マスが ℋ 類です。
+      塗られたマスは群になっている ℋ 類、下線付きの元は冪等元で、上にある箱ほどイデアルが大きく、線は 𝒥 順序の被覆関係です。`,
   },
   en: {
     docTitle: "Monoids of Order 2 to 6",
@@ -171,6 +203,10 @@ const I18N = {
     more: (k) => `Show more (${k} left)`,
     dual: "Dual",
     switchLabel: "Switch (button x in state s → s·x)",
+    viewsLabel: "Show:",
+    views: { table: "Cayley table", graph: "Cayley graph", egg: "Egg-box diagram" },
+    graphLabel: "Cayley graph (generators",
+    eggLabel: "Egg-box diagram (Green's relations)",
     reset: "Reset",
     idempotents: "Idempotents",
     units: "Units",
@@ -192,7 +228,10 @@ const I18N = {
       Notation: Zₙ cyclic group, Cₙ chain (semilattice), Lₖ / Rₖ left / right zero semigroup (x·y = x / y), Oₖ null semigroup (all products 0),
       S¹ adjoin an identity, S⁰ adjoin a zero, ⟨g | gⁱ⁺ᵖ = gⁱ⟩ monogenic monoid, T₂ full transformation monoid on 2 points,
       B₂ Brandt semigroup, A₂ the 5-element Rees 0-matrix semigroup.
-      Transformations multiply as x·y = "x, then y" (a right action), matching the switches.`,
+      Transformations multiply as x·y = "x, then y" (a right action), matching the switches.<br>
+      Cayley graph: an arrow s → s·g for each generator g of a smallest generating set, i.e. the switch's state diagram (self-loops drawn as small rings).<br>
+      Egg-box diagram: thick boxes are 𝒟-classes (= 𝒥-classes), rows are ℛ-classes (equal xM), columns are ℒ-classes (equal Mx) and cells are ℋ-classes.
+      Shaded cells are group ℋ-classes, underlined elements are idempotents, higher boxes have larger ideals, and lines are covers in the 𝒥-order.`,
   },
 };
 
@@ -209,7 +248,8 @@ function initialLang() {
 const FILTER_KEYS = ["isGroup", "commutative", "isBand", "hasZero", "cyclic", "inverse", "named"];
 // filters: key -> true (must have) / false (must not have); absent = any
 // shown: order -> number of cards currently rendered in that section
-const state = { lang: initialLang(), orders: new Set(ORDERS), filters: new Map(), shown: new Map() };
+const VIEW_KEYS = ["table", "graph", "egg"];
+const state = { lang: initialLang(), orders: new Set(ORDERS), filters: new Map(), shown: new Map(), views: new Set(VIEW_KEYS) };
 const t = () => I18N[state.lang];
 
 const test = {
@@ -267,6 +307,22 @@ function renderControls() {
     }));
     return seg;
   }));
+
+  const views = document.getElementById("views");
+  views.replaceChildren(t().viewsLabel, ...VIEW_KEYS.map((key) => {
+    const seg = document.createElement("div");
+    seg.className = "seg";
+    const b = document.createElement("button");
+    b.textContent = t().views[key];
+    b.setAttribute("aria-pressed", String(state.views.has(key)));
+    b.onclick = () => {
+      state.views.has(key) ? state.views.delete(key) : state.views.add(key);
+      renderControls();
+      render();
+    };
+    seg.append(b);
+    return seg;
+  }));
 }
 
 // Per-card switch state: id -> { state, presses, last }
@@ -283,6 +339,94 @@ function cayley(m, sw) {
       return `<td class="v${v}${hit ? " hit" : ""}">${NAMES[v]}</td>`;
     }).join("")}</tr>`).join("");
   return `<table${n > 4 ? ' class="big"' : ""}><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+}
+
+// Cayley graph: elements on a circle, arrows s → s·g for each generator g
+function cayleyGraph(m, sw) {
+  const L = t();
+  const n = m.n;
+  m.gens ??= minimalGenerators(m.table, n);
+  const size = 200, c = size / 2, R = 68, r = 13;
+  const pos = [...Array(n).keys()].map((i) => {
+    const a = -Math.PI / 2 + (2 * Math.PI * i) / n;
+    return [c + R * Math.cos(a), c + R * Math.sin(a)];
+  });
+  const id = `${m.n}-${m.index}`;
+  const markers = m.gens.map((g) =>
+    `<marker id="ar-${id}-${g}" class="g${g}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>`).join("");
+  const edges = [];
+  for (let s = 0; s < n; s++)
+    m.gens.forEach((g, gi) => {
+      const to = m.table[s * n + g];
+      const hot = sw.last && sw.last.from === s && sw.last.button === g ? " hot" : "";
+      const [x1, y1] = pos[s];
+      if (to === s) {
+        // self-loop: a small ring just outside the node, fanned out per generator
+        const a = Math.atan2(y1 - c, x1 - c) + (gi - (m.gens.length - 1) / 2) * 0.7;
+        const lx = x1 + (r + 6) * Math.cos(a), ly = y1 + (r + 6) * Math.sin(a);
+        edges.push(`<circle class="edge g${g}${hot}" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="6"/>`);
+        return;
+      }
+      const [x2, y2] = pos[to];
+      const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+      // bend to the right of the direction of travel, more for each further generator
+      const off = 10 + gi * 9;
+      const qx = (x1 + x2) / 2 + (dy / len) * off, qy = (y1 + y2) / 2 - (dx / len) * off;
+      const trim = (px, py, ax, ay, d) => {
+        const l = Math.hypot(ax - px, ay - py);
+        return [px + ((ax - px) / l) * d, py + ((ay - py) / l) * d];
+      };
+      const [sx, sy] = trim(x1, y1, qx, qy, r + 1);
+      const [ex, ey] = trim(x2, y2, qx, qy, r + 2);
+      edges.push(`<path class="edge g${g}${hot}" d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" marker-end="url(#ar-${id}-${g})"/>`);
+    });
+  const nodes = pos.map(([x, y], i) =>
+    `<circle class="node v${i}${i === sw.state ? " on" : ""}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}"/><text x="${x.toFixed(1)}" y="${(y + 4.5).toFixed(1)}" text-anchor="middle" font-size="13">${NAMES[i]}</text>`).join("");
+  const gens = m.gens.map((g) => `<b class="g${g}">${NAMES[g]}</b>`).join(", ");
+  return `<div class="fig"><div class="fig-label gens">${L.graphLabel}: ${gens})</div>
+    <svg class="cg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><defs>${markers}</defs>${edges.join("")}${nodes}</svg></div>`;
+}
+
+// Egg-box diagram of Green's relations, D-classes layered by the J-order
+function eggBox(m) {
+  const L = t();
+  m.green ??= greenStructure(m.table, m.n);
+  const { classes, covers, layer } = m.green;
+  const rowH = 22, gapX = 14, gapY = 24;
+  const boxes = classes.map((d) => {
+    const maxLen = Math.max(...d.cells.flat().map((h) => h.length));
+    const cw = Math.max(22, maxLen * 9 + 10);
+    return { d, cw, w: d.cells[0].length * cw, h: d.cells.length * rowH };
+  });
+  const layers = [];
+  boxes.forEach((b, i) => (layers[layer[i]] ??= []).push(i));
+  const width = Math.max(...layers.map((ls) => ls.reduce((s, i) => s + boxes[i].w, 0) + gapX * (ls.length - 1)));
+  let y = 2;
+  for (const ls of layers) {
+    const total = ls.reduce((s, i) => s + boxes[i].w, 0) + gapX * (ls.length - 1);
+    let x = (width - total) / 2 + 2;
+    for (const i of ls) {
+      Object.assign(boxes[i], { x, y });
+      x += boxes[i].w + gapX;
+    }
+    y += Math.max(...ls.map((i) => boxes[i].h)) + gapY;
+  }
+  const height = y - gapY + 4;
+  const lines = covers.map(([a, b]) => {
+    const A = boxes[a], B = boxes[b];
+    return `<line class="cover" x1="${A.x + A.w / 2}" y1="${A.y + A.h}" x2="${B.x + B.w / 2}" y2="${B.y}"/>`;
+  }).join("");
+  const cells = boxes.map(({ d, cw, x, y, w, h }) => {
+    const inner = d.cells.map((row, ri) => row.map((hc, ci) => {
+      const cx = x + ci * cw, cy = y + ri * rowH;
+      const label = hc.map((e) => `<tspan${d.idempotents.includes(e) ? ' class="idem"' : ""}>${NAMES[e]}</tspan>`).join("");
+      return `<rect class="cell${d.group[ri][ci] ? " grp" : ""}" x="${cx}" y="${cy}" width="${cw}" height="${rowH}"/>
+        <text x="${cx + cw / 2}" y="${cy + 15}" text-anchor="middle" font-size="12">${label}</text>`;
+    }).join("")).join("");
+    return `${inner}<rect class="box" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
+  }).join("");
+  return `<div class="fig"><div class="fig-label">${L.eggLabel}</div>
+    <svg class="egg" viewBox="0 0 ${width + 4} ${height}" width="${width + 4}" height="${height}">${lines}${cells}</svg></div>`;
 }
 
 const set = (xs) => `{${xs.map((x) => NAMES[x]).join(", ")}}`;
@@ -305,7 +449,9 @@ function card(m) {
   return `<article class="card" data-id="${m.n}-${m.index}">
     <h3><b>M<sub>${m.n}</sub>-${m.index}</b><span>${m.selfDual ? "" : `${L.dual}: M<sub>${m.n}</sub>-${m.dualIndex}`}</span></h3>
     ${m.names.length ? `<p class="names">${m.names.join("<br>")}</p>` : ""}
-    ${cayley(m, sw)}
+    ${state.views.has("table") ? cayley(m, sw) : ""}
+    ${state.views.has("graph") ? cayleyGraph(m, sw) : ""}
+    ${state.views.has("egg") ? eggBox(m) : ""}
     <div class="tags">${m.tags.map((tag) => `<span class="tag${tag === "group" ? " g" : ""}">${L.tags[tag]}</span>`).join("")}</div>
     <dl>
       <dt>${L.idempotents}</dt><dd>${set(m.idempotents)}</dd>
