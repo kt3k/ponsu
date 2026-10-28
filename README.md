@@ -1,8 +1,10 @@
 # ponsu
 
-A static site that lists every monoid of order 2, 3 and 4 up to isomorphism (2, 7 and 35 of them) as Cayley tables. The page is available in Japanese and English.
+A static site that lists every monoid of order 2 to 6 up to isomorphism (2, 7, 35, 228 and 2,237 of them) as Cayley tables, with common names for well-known ones and an interactive switch for each. The page is available in Japanese and English.
 
-- `monoids.js` — enumerates all associative operation tables by brute force and picks one representative per isomorphism class
-- `index.html` — renders the list, with filters for groups, commutative monoids, bands and monoids with a zero
+- `scripts/generate.js` — backtracking search over associative operation tables; writes `data.json` (run `npm run generate`, about a minute)
+- `scripts/named.js` — well-known monoids built from their definitions (groups, chains, T₂, B₂¹, …), matched to the list up to isomorphism
+- `monoids.js` — shared helpers: enumeration, canonical forms and structural properties
+- `index.html` — renders the list, with filters and a right-regular-representation switch on each card
 
-Every push to `main` deploys the site to GitHub Pages via GitHub Actions (Settings → Pages → Source must be "GitHub Actions").
+Every push to `main` deploys the site to GitHub Pages via GitHub Actions (Settings → Pages → Source must be "GitHub Actions"). The deploy replaces `__BUILD__` in `index.html` with the commit SHA so cached assets are never mixed across versions.

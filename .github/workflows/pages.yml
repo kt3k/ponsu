@@ -22,7 +22,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - run: mkdir -p dist && cp index.html monoids.js .nojekyll dist/
+      - name: Build site
+        run: |
+          mkdir -p dist
+          cp index.html monoids.js data.json .nojekyll dist/
+          # Version asset URLs per commit so cached and fresh files are never mixed
+          sed -i "s/__BUILD__/${GITHUB_SHA::12}/g" dist/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
