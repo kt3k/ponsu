@@ -108,7 +108,22 @@ export function analyze(t, n) {
   const cyclic = els.some((g) => generated(g).size === n);
   // Inverse monoid: every x has exactly one y with x·y·x = x and y·x·y = y
   const inverse = els.every((x) => els.filter((y) => op(op(x, y), x) === x && op(op(y, x), y) === y).length === 1);
-  return { commutative, idempotents, units, zero, leftCancel, rightCancel, isGroup, isBand, cyclic, inverse };
+  // Aperiodic: every x has x^k = x^(k+1) for some k, i.e. every subgroup (ℋ-class) is trivial
+  const aperiodic = els.every((x) => {
+    let p = x;
+    for (let k = 0; k <= n; k++) {
+      if (op(p, x) === p) return true;
+      p = op(p, x);
+    }
+    return false;
+  });
+  // 𝒥-, ℛ-, ℒ-trivial: distinct elements generate distinct two-sided / right / left ideals
+  const idealKey = (f) => els.map((x) => [...new Set(els.flatMap((m) => f(x, m)))].sort().join());
+  const distinct = (keys) => new Set(keys).size === n;
+  const rTrivial = distinct(idealKey((x, m) => [op(x, m)]));
+  const lTrivial = distinct(idealKey((x, m) => [op(m, x)]));
+  const jTrivial = distinct(idealKey((x, m) => els.map((k) => op(op(m, x), k))));
+  return { commutative, idempotents, units, zero, leftCancel, rightCancel, isGroup, isBand, cyclic, inverse, aperiodic, rTrivial, lTrivial, jTrivial };
 }
 
 export function tags(m) {
@@ -119,6 +134,10 @@ export function tags(m) {
   if (m.zero !== undefined && m.n > 1) tags.push("zero");
   if (m.cyclic) tags.push("cyclic");
   if (m.inverse && !m.isGroup) tags.push("inverse");
+  if (m.jTrivial) tags.push("jTrivial");
+  else if (m.rTrivial) tags.push("rTrivial");
+  else if (m.lTrivial) tags.push("lTrivial");
+  else if (m.aperiodic) tags.push("aperiodic");
   if (!m.isGroup && m.leftCancel !== m.rightCancel) tags.push(m.leftCancel ? "leftCancel" : "rightCancel");
   if (m.selfDual) tags.push("selfDual");
   return tags;

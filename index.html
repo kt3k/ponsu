@@ -175,9 +175,13 @@ const I18N = {
       hasZero: ["零元あり", "零元なし"],
       cyclic: ["単生成", "単生成でない"],
       inverse: ["逆モノイド", "逆モノイドでない"],
+      aperiodic: ["非周期的", "非周期的でない"],
+      jTrivial: ["𝒥-自明", "𝒥-自明でない"],
+      rTrivial: ["ℛ-自明", "ℛ-自明でない"],
+      lTrivial: ["ℒ-自明", "ℒ-自明でない"],
       named: ["慣用名あり", "慣用名なし"],
     },
-    tags: { group: "群", commutative: "可換", band: "冪等 (band)", zero: "零元あり", cyclic: "単生成", inverse: "逆モノイド", leftCancel: "左簡約", rightCancel: "右簡約", selfDual: "自己双対" },
+    tags: { group: "群", commutative: "可換", band: "冪等 (band)", zero: "零元あり", cyclic: "単生成", inverse: "逆モノイド", aperiodic: "非周期的", jTrivial: "𝒥-自明", rTrivial: "ℛ-自明", lTrivial: "ℒ-自明", leftCancel: "左簡約", rightCancel: "右簡約", selfDual: "自己双対" },
     footer: `参考: OEIS <a href="https://oeis.org/A058129">A058129</a>（同型類の数 1, 2, 7, 35, 228, 2237, …）。
       「双対」は演算を左右反転させた (x·y ↦ y·x) モノイドの番号です。<br>
       記法: Zₙ 巡回群、Cₙ 鎖（半束）、Lₖ / Rₖ 左 / 右零半群（x·y = x / y）、Oₖ 零半群（全ての積が 0）、
@@ -186,7 +190,9 @@ const I18N = {
       変換モノイドの積は x·y = 「x の後に y」（右作用）で、スイッチの向きと揃えています。<br>
       Cayley グラフ: 最小の生成元 g ごとに s → s·g の矢印を描いた、スイッチの状態遷移図です（自己ループは小さな輪）。<br>
       egg-box 図: 太枠が 𝒟 類（= 𝒥 類）、行が ℛ 類（xM が等しい）、列が ℒ 類（Mx が等しい）、マスが ℋ 類です。
-      塗られたマスは群になっている ℋ 類、下線付きの元は冪等元で、上にある箱ほどイデアルが大きく、線は 𝒥 順序の被覆関係です。`,
+      塗られたマスは群になっている ℋ 類、下線付きの元は冪等元で、上にある箱ほどイデアルが大きく、線は 𝒥 順序の被覆関係です。<br>
+      非周期的: 全ての ℋ 類が 1 元（自明でない部分群を持たない）。𝒥 / ℛ / ℒ-自明: egg-box の箱 / 行 / 列が全て 1 元。
+      𝒥-自明 ⇒ ℛ-自明かつ ℒ-自明 ⇒ 非周期的 です（タグには一番強いものだけを表示）。`,
   },
   en: {
     docTitle: "Monoids of Order 2 to 6",
@@ -220,9 +226,13 @@ const I18N = {
       hasZero: ["Has zero", "No zero"],
       cyclic: ["Monogenic", "Not monogenic"],
       inverse: ["Inverse", "Not inverse"],
+      aperiodic: ["Aperiodic", "Not aperiodic"],
+      jTrivial: ["𝒥-trivial", "Not 𝒥-trivial"],
+      rTrivial: ["ℛ-trivial", "Not ℛ-trivial"],
+      lTrivial: ["ℒ-trivial", "Not ℒ-trivial"],
       named: ["Named", "Unnamed"],
     },
-    tags: { group: "group", commutative: "commutative", band: "band", zero: "has zero", cyclic: "monogenic", inverse: "inverse", leftCancel: "left cancellative", rightCancel: "right cancellative", selfDual: "self-dual" },
+    tags: { group: "group", commutative: "commutative", band: "band", zero: "has zero", cyclic: "monogenic", inverse: "inverse", aperiodic: "aperiodic", jTrivial: "𝒥-trivial", rTrivial: "ℛ-trivial", lTrivial: "ℒ-trivial", leftCancel: "left cancellative", rightCancel: "right cancellative", selfDual: "self-dual" },
     footer: `See OEIS <a href="https://oeis.org/A058129">A058129</a> (number of isomorphism classes: 1, 2, 7, 35, 228, 2237, …).
       "Dual" is the number of the monoid with the operation reversed (x·y ↦ y·x).<br>
       Notation: Zₙ cyclic group, Cₙ chain (semilattice), Lₖ / Rₖ left / right zero semigroup (x·y = x / y), Oₖ null semigroup (all products 0),
@@ -231,7 +241,9 @@ const I18N = {
       Transformations multiply as x·y = "x, then y" (a right action), matching the switches.<br>
       Cayley graph: an arrow s → s·g for each generator g of a smallest generating set, i.e. the switch's state diagram (self-loops drawn as small rings).<br>
       Egg-box diagram: thick boxes are 𝒟-classes (= 𝒥-classes), rows are ℛ-classes (equal xM), columns are ℒ-classes (equal Mx) and cells are ℋ-classes.
-      Shaded cells are group ℋ-classes, underlined elements are idempotents, higher boxes have larger ideals, and lines are covers in the 𝒥-order.`,
+      Shaded cells are group ℋ-classes, underlined elements are idempotents, higher boxes have larger ideals, and lines are covers in the 𝒥-order.<br>
+      Aperiodic: every ℋ-class is a single element (no non-trivial subgroups). 𝒥- / ℛ- / ℒ-trivial: every egg-box box / row / column is a single element.
+      𝒥-trivial ⇒ ℛ- and ℒ-trivial ⇒ aperiodic (cards show only the strongest tag).`,
   },
 };
 
@@ -245,7 +257,7 @@ function initialLang() {
   return (navigator.language || "").startsWith("ja") ? "ja" : "en";
 }
 
-const FILTER_KEYS = ["isGroup", "commutative", "isBand", "hasZero", "cyclic", "inverse", "named"];
+const FILTER_KEYS = ["isGroup", "commutative", "isBand", "hasZero", "cyclic", "inverse", "aperiodic", "jTrivial", "rTrivial", "lTrivial", "named"];
 // filters: key -> true (must have) / false (must not have); absent = any
 // shown: order -> number of cards currently rendered in that section
 const VIEW_KEYS = ["table", "graph", "egg"];
@@ -259,6 +271,10 @@ const test = {
   hasZero: (m) => m.zero !== undefined,
   cyclic: (m) => m.cyclic,
   inverse: (m) => m.inverse,
+  aperiodic: (m) => m.aperiodic,
+  jTrivial: (m) => m.jTrivial,
+  rTrivial: (m) => m.rTrivial,
+  lTrivial: (m) => m.lTrivial,
   named: (m) => m.names.length > 0,
 };
 
